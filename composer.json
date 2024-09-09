@@ -1,0 +1,37 @@
+{
+    "name": "david-maximous/fawaterak",
+    "version": "1.0.0",
+    "license": "MIT",
+    "description": "Laravel Payment helper for Fawaterak",
+    "keywords": [
+        "online payments",
+        "fawaterak"
+    ],
+    "autoload": {
+        "psr-4": {
+            "DavidMaximous\\Fawaterak\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.0",
+        "laravel/framework": ">=6.0",
+        "ext-json": "*",
+        "ext-curl": "*"
+    },
+    "authors": [
+        {
+            "name": "David Maximous",
+            "email": "info@davidmaximous.me"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DavidMaximous\\Fawaterak\\FawaterakServiceProvider"
+            ],
+            "aliases": {
+                "Fawaterak": "DavidMaximous\\Fawaterak\\Facades\\FawaterakPaymentsFacade"
+            }
+        }
+    }
+}
