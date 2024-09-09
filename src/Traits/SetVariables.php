@@ -86,7 +86,14 @@ trait SetVariables
      */
     public function setMethod($value)
     {
-        $this->method = $value;
+        $this->method = match ($value) {
+            'card' => '2',
+            'fawry' => '3',
+            'mwallet' => '4',
+            'aman' => '12',
+            'basata' => '14',
+            default => '',
+        };
         return $this;
     }
 

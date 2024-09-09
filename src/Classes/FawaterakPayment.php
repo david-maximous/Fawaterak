@@ -51,6 +51,7 @@ class FawaterakPayment extends BaseController
 
         $returnUrl = route($this->fawaterak_redirect_url);
 
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Bearer ' . $this->fawaterak_api_key,

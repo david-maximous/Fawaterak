@@ -47,6 +47,7 @@ class FawaterakVerify extends BaseController
                             'invoice_id' => $invoice_id,
                             'payload' => $status['payload'],
                             'amount_paid' => $status['process_data']['total'],
+                            'payment_method' => $status['payment_method'],
                             'message' => __('fawaterak::messages.PAYMENT_DONE'),
                             'process_data' => $status['process_data']
                         ];
@@ -55,7 +56,7 @@ class FawaterakVerify extends BaseController
                 }
                 else $this->failedResponse($invoice_id, $status['status'], $status['process_data']);
             }
-            else $this->securityResponse($invoice_id, $request->all()); Log::info($request);
+            else $this->securityResponse($invoice_id, $request->all());
         }
         else $this->failedResponse($invoice_id, $request->offsetGet('statusCode'), $request->all());
     }
@@ -71,11 +72,13 @@ class FawaterakVerify extends BaseController
         //return $request['data']['paid'];
         if($status == 'success' && $request['data']['paid'] == 1)
         {
+            $request['data']['payment_method_id'] = $this->matchPaymentMethod($request['data']['payment_method_id']);
             return [
                 'status' => $status,
                 'invoice_id' => $request['data']['invoice_id'],
                 'invoice_key' => $request['data']['invoice_key'],
                 'payload' => $request['data']['pay_load'],
+                'payment_method' => $request['data']['payment_method_id'],
                 'process_data' => $request['data'],
             ];
         }
@@ -86,6 +89,18 @@ class FawaterakVerify extends BaseController
             ];
         }
 
+    }
+
+    public function matchPaymentMethod($method)
+    {
+        return match ($method) {
+            '2' => 'Credit/Debit Card',
+            '3' => 'Fawry',
+            '4' => 'Mobile Wallet',
+            '12' => 'Aman',
+            '14' => 'Masary/Basata',
+            default => '',
+        };
     }
 
     public function securityResponse($reference_id, $process_data)
