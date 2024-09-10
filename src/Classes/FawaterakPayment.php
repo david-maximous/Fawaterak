@@ -106,7 +106,7 @@ class FawaterakPayment extends BaseController
         }
         catch (\Exception $e) {
             return [
-                'status' => $status,
+                'status' => 'failed',
                 'message' => __('fawaterak::messages.PAYMENT_FAILED_WITH_CODE', ['CODE' => $e->getCode()]),
             ];
         }
