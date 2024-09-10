@@ -51,55 +51,63 @@ class FawaterakPayment extends BaseController
 
         $returnUrl = route($this->fawaterak_redirect_url);
 
+        try {
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->fawaterak_api_key,
-        ])->post($this->fawaterak_url . 'api/v2/invoiceInitPay', [
-            "payment_method_id" => $this->method,
-            "cartTotal" => $this->amount * $this->quantity,
-            "currency" => $this->currency,
-            "customer" => [
-                "first_name" => $this->first_name,
-                "last_name" => $this->last_name,
-                "email" => $this->user_email,
-                "phone" => $this->user_phone,
-            ],
-            "redirectionUrls" => [
-                "successUrl" => $returnUrl . "/success",
-                "failUrl" => $returnUrl . "/failed",
-                "pendingUrl" => $returnUrl . "/pending"
-            ],
-            "cartItems" => [
-                [
-                    "name" => $this->item_name,
-                    "price" => $this->amount,
-                    "quantity" => $this->quantity
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer ' . $this->fawaterak_api_key,
+            ])->post($this->fawaterak_url . 'api/v2/invoiceInitPay', [
+                "payment_method_id" => $this->method,
+                "cartTotal" => $this->amount * $this->quantity,
+                "currency" => $this->currency,
+                "customer" => [
+                    "first_name" => $this->first_name,
+                    "last_name" => $this->last_name,
+                    "email" => $this->user_email,
+                    "phone" => $this->user_phone,
                 ],
-            ],
-            "payLoad" => [
-                $this->payload
-            ],
-            "redirectOption" => true,
-            "lang" => $this->language
+                "redirectionUrls" => [
+                    "successUrl" => $returnUrl . "/success",
+                    "failUrl" => $returnUrl . "/failed",
+                    "pendingUrl" => $returnUrl . "/pending"
+                ],
+                "cartItems" => [
+                    [
+                        "name" => $this->item_name,
+                        "price" => $this->amount,
+                        "quantity" => $this->quantity
+                    ],
+                ],
+                "payLoad" => [
+                    $this->payload
+                ],
+                "redirectOption" => true,
+                "lang" => $this->language
 
-        ]);
-        $status = $response?->offsetGet('status');
-        if ($status == 'success')
-        {
-            $data = $response?->offsetGet('data');
-            return [
-                'status' => $status,
-                'invoice_id' => $data['invoice_id'],
-                'invoice_key' => $data['invoice_key'],
-                'link' => $data['payment_data']['redirectTo'],
-            ];
+            ]);
+            $status = $response?->offsetGet('status');
+            if ($status == 'success')
+            {
+                $data = $response?->offsetGet('data');
+                return [
+                    'status' => $status,
+                    'invoice_id' => $data['invoice_id'],
+                    'invoice_key' => $data['invoice_key'],
+                    'link' => $data['payment_data']['redirectTo'],
+                ];
+            }
+            else
+            {
+                return [
+                    'status' => $status,
+                    'message' => __('fawaterak::messages.Process_Has_Been_Blocked_From_System'),
+                ];
+            }
         }
-        else
-        {
+        catch (\Exception $e) {
             return [
                 'status' => $status,
-                'message' => __('fawaterak::messages.Process_Has_Been_Blocked_From_System'),
+                'message' => __('fawaterak::messages.PAYMENT_FAILED_WITH_CODE', ['CODE' => $e->getCode()]),
             ];
         }
     }
