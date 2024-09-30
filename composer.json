@@ -1,11 +1,17 @@
 {
     "name": "david-maximous/fawaterak",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "license": "MIT",
     "description": "Laravel Payment helper for Fawaterak",
     "keywords": [
         "online payments",
-        "fawaterak"
+        "fawaterak",
+        "card",
+        "fawry",
+        "aman",
+        "basata",
+        "masary",
+        "mobile wallet"
     ],
     "autoload": {
         "psr-4": {

@@ -22,10 +22,10 @@ class FawaterakVerify extends BaseController
     }
 
 
-/*    /**
-     * @param Request $request
-     * @return array|void
-     */
+    /*    /**
+         * @param Request $request
+         * @return array|void
+         */
     public function verifyCallback(Request $request)
     {
         //return $request->all();
@@ -72,13 +72,12 @@ class FawaterakVerify extends BaseController
         //return $request['data']['paid'];
         if($status == 'success' && $request['data']['paid'] == 1)
         {
-            $request['data']['payment_method_id'] = $this->matchPaymentMethod($request['data']['payment_method_id']);
             return [
                 'status' => $status,
                 'invoice_id' => $request['data']['invoice_id'],
                 'invoice_key' => $request['data']['invoice_key'],
                 'payload' => $request['data']['pay_load'],
-                'payment_method' => $request['data']['payment_method_id'],
+                'payment_method' => $this->matchPaymentMethod($request['data']['payment_method_id']),
                 'process_data' => $request['data'],
             ];
         }
@@ -93,13 +92,13 @@ class FawaterakVerify extends BaseController
 
     public function matchPaymentMethod($method)
     {
-        return match ($method) {
+        return match ((string) $method) {
             '2' => 'Credit/Debit Card',
             '3' => 'Fawry',
             '4' => 'Mobile Wallet',
             '12' => 'Aman',
             '14' => 'Masary/Basata',
-            default => '',
+            default => 'N/A',
         };
     }
 
