@@ -98,6 +98,7 @@ class FawaterakVerify extends BaseController
             '4' => 'Mobile Wallet',
             '12' => 'Aman',
             '14' => 'Masary/Basata',
+            '42' => 'Apple Pay',
             default => 'N/A',
         };
     }

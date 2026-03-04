@@ -101,6 +101,7 @@ class FawaterakPayment extends BaseController
                 return [
                     'status' => $status,
                     'message' => __('fawaterak::messages.Process_Has_Been_Blocked_From_System'),
+                    'response' => $response->body(),
                 ];
             }
         }

@@ -92,6 +92,7 @@ trait SetVariables
             'mwallet' => '4',
             'aman' => '12',
             'basata' => '14',
+            'applepay' => '42',
             default => '',
         };
         return $this;
