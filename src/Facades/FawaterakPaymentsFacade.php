@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \DavidMaximous\Fawaterak\Classes\FawaterakPayment setPayload($value)
  * @method static \DavidMaximous\Fawaterak\Classes\FawaterakPayment setLanguage($value)
  * @method static array pay($amount = null, $first_name = null, $last_name = null, $user_email = null, $user_phone = null, $method = null, $item_name = null, $quantity = null, $currency = null, $language = null, ?array $payload = [])
- * @method static array createTransaction()
+ * @method static array debug()
  * @method static array listPaymentMethods(bool $fresh = false)
  * @method static array paymentMethodsList(?string $lang = null)
  *

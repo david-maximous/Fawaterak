@@ -23,14 +23,14 @@ class FawaterakVerify extends BaseController
     /**
      * Read one transaction. POST /api/v3/getTransactionData
      *
-     * @param  string  $invoice_id  The transaction intent_key.
+     * @param  string  $intentKey  The transaction intent_key.
      * @return array
      */
-    public function getTransactionData($invoice_id)
+    public function getTransactionData($intentKey)
     {
         try {
             $response = $this->client()->oauth('post', 'api/v3/getTransactionData', [
-                'intent_key' => $invoice_id,
+                'intent_key' => $intentKey,
             ]);
 
             if (! $this->client()->succeeded($response)) {
@@ -88,13 +88,8 @@ class FawaterakVerify extends BaseController
             'transaction_created_at' => $data['transaction_created_at'] ?? null,
             'transaction_link' => $data['transaction_link'] ?? null,
             'transaction_history' => $data['transaction_history'] ?? [],
-            'pay_load' => $data['pay_load'] ?? null,
-
-            // 1.x keys
             'payload' => $data['pay_load'] ?? null,
             'process_data' => $data,
-            'invoice_id' => $intentKey,
-            'invoice_key' => $intentKey,
         ];
     }
 
@@ -202,11 +197,9 @@ class FawaterakVerify extends BaseController
             return $this->pendingResponse($id, [
                 'transaction_key' => $key,
                 'transaction_id' => $id,
-                'invoice_id' => $key,
                 'payment_method' => $paymentMethod,
                 'reference_number' => $data['referenceNumber'] ?? null,
                 'payload' => $this->decodePayload($data['pay_load'] ?? null),
-                'pay_load' => $this->decodePayload($data['pay_load'] ?? null),
                 'process_data' => $data,
             ]);
         }
@@ -230,8 +223,7 @@ class FawaterakVerify extends BaseController
             'success' => true,
             'transaction_key' => $key,
             'transaction_id' => $transaction['transaction_id'] ?: $id,
-            'payload' => $transaction['pay_load'],
-            'pay_load' => $transaction['pay_load'],
+            'payload' => $transaction['payload'],
             'amount_paid' => $transaction['total'],
             'paid_amount' => $data['paidAmount'] ?? null,
             'currency' => $transaction['currency'],
@@ -240,9 +232,6 @@ class FawaterakVerify extends BaseController
             'customer' => $data['customerData'] ?? [],
             'message' => __('fawaterak::messages.PAYMENT_DONE'),
             'process_data' => $transaction['process_data'],
-
-            // 1.x key
-            'invoice_id' => $key,
         ];
     }
 
@@ -279,14 +268,12 @@ class FawaterakVerify extends BaseController
             'payment_id' => $dialect['id'],
             'transaction_key' => $dialect['key'],
             'transaction_id' => $dialect['id'],
-            'invoice_id' => $dialect['key'],
             'payment_method' => $paymentMethod,
             'amount' => $data['amount'] ?? null,
             'currency' => $data['paidCurrency'] ?? null,
             'error_message' => $data['errorMessage'] ?? null,
             'gateway_response' => $data['response'] ?? null,
             'payload' => $this->decodePayload($data['pay_load'] ?? null),
-            'pay_load' => $this->decodePayload($data['pay_load'] ?? null),
             'message' => ($data['errorMessage'] ?? null) ?: __('fawaterak::messages.PAYMENT_FAILED'),
             'process_data' => $data,
         ];
@@ -326,9 +313,7 @@ class FawaterakVerify extends BaseController
             'payment_method' => $paymentMethod,
             'transaction_id' => $data['transactionId'] ?? null,
             'transaction_key' => $data['transactionKey'] ?? null,
-            'invoice_id' => $data['transactionKey'] ?? null,
             'payload' => $this->decodePayload($data['pay_load'] ?? null),
-            'pay_load' => $this->decodePayload($data['pay_load'] ?? null),
             'message' => $status === 'EXPIRED'
                 ? __('fawaterak::messages.REFERENCE_EXPIRED')
                 : __('fawaterak::messages.REFERENCE_CANCELED'),
@@ -365,7 +350,6 @@ class FawaterakVerify extends BaseController
             'refunded' => true,
             'payment_id' => $transactionId,
             'transaction_id' => $transactionId,
-            'invoice_id' => $transactionId,
             'amount' => $amount,
             'currency' => $currency,
             'status' => $data['status'] ?? null,
@@ -562,21 +546,45 @@ class FawaterakVerify extends BaseController
     /**
      * Map a payment method id to a readable name.
      *
-     * @deprecated API v3 already returns a localized payment_method name.
-     *             Use FawaterakPayment::paymentMethodsList() instead.
+     * Resolves against the payment methods enabled on your own account, so the
+     * name is always current and localized. Falls back to a small offline map
+     * when the list cannot be reached (no credentials, network down, ...) --
+     * this method never throws.
+     *
+     * @param  string|int  $method  A payment_method_id.
+     * @param  string|null  $lang  "en" or "ar". Defaults to the app locale.
+     * @return string
+     */
+    public function matchPaymentMethod($method, ?string $lang = null)
+    {
+        try {
+            $list = $this->paymentMethodsList($lang);
+
+            foreach ($list as $id => $name) {
+                if ((string) $id === (string) $method && $name !== '') {
+                    return $name;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall through to the offline map below.
+        }
+
+        return $this->staticPaymentMethodName($method);
+    }
+
+    /**
+     * Offline payment method names, limited to the ids the Fawaterak API
+     * specification documents.
      *
      * @param  string|int  $method
      * @return string
      */
-    public function matchPaymentMethod($method)
+    protected function staticPaymentMethodName($method)
     {
         return match ((string) $method) {
-            '2' => 'Credit/Debit Card',
+            '2' => 'Visa-Mastercard',
             '3' => 'Fawry',
-            '4' => 'Mobile Wallet',
-            '12' => 'Aman',
-            '14' => 'Masary/Basata',
-            '42' => 'Apple Pay',
+            '4' => 'Meeza',
             default => 'N/A',
         };
     }

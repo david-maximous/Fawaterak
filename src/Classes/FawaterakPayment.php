@@ -3,7 +3,6 @@
 namespace DavidMaximous\Fawaterak\Classes;
 
 use DavidMaximous\Fawaterak\Exceptions\MissingPaymentInfoException;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * Creates Fawaterak transactions (API v3).
@@ -17,10 +16,14 @@ use Illuminate\Support\Facades\Cache;
 class FawaterakPayment extends BaseController
 {
     /**
-     * Create a transaction and return the checkout link or the payment data.
+     * Create a transaction. POST /api/v3/createTransaction
      *
-     * Kept with the exact 1.x signature. The returned array contains the new
-     * API v3 keys plus the legacy invoice_id / invoice_key / link aliases.
+     * Two modes, decided by whether a payment method was selected:
+     *   - no method  -> hosted checkout, the response carries "url"
+     *   - a method   -> direct payment, the response carries "payment_data"
+     *
+     * Every argument is optional: pass them positionally, or set them with the
+     * fluent setters and call pay() with no arguments at all.
      *
      * @param  $amount
      * @param  null  $first_name
@@ -41,18 +44,6 @@ class FawaterakPayment extends BaseController
     {
         $this->setPassedVariablesToGlobal($amount, $first_name, $last_name, $user_email, $user_phone, $method, $item_name, $quantity, $currency, $language, $payload);
 
-        return $this->createTransaction();
-    }
-
-    /**
-     * Create a transaction. POST /api/v3/createTransaction
-     *
-     * @return array
-     *
-     * @throws MissingPaymentInfoException
-     */
-    public function createTransaction(): array
-    {
         $required_fields = ['amount', 'first_name', 'last_name', 'user_email', 'user_phone'];
         $this->checkRequiredFields($required_fields);
 
@@ -68,7 +59,7 @@ class FawaterakPayment extends BaseController
         $this->language ?? $this->language = $this->resolveLang();
 
         try {
-            $response = $this->client()->oauth('post', 'api/v3/createTransaction', $this->buildTransactionBody());
+            $response = $this->client()->oauth('post', 'api/v3/createTransaction', $this->debug());
 
             if (! $this->client()->succeeded($response)) {
                 return $this->apiErrorResponse($response);
@@ -83,13 +74,14 @@ class FawaterakPayment extends BaseController
     }
 
     /**
-     * The request body sent to createTransaction.
+     * The exact request body pay() will send to Fawaterak.
      *
-     * Exposed so you can inspect or log exactly what will be sent.
+     * Nothing is sent when you call this. Use it to inspect, log or dd() the
+     * payload while you are building an integration.
      *
      * @return array
      */
-    public function buildTransactionBody(): array
+    public function debug(): array
     {
         $body = [
             'cartTotal' => $this->resolveCartTotal(),
@@ -140,16 +132,6 @@ class FawaterakPayment extends BaseController
         }
 
         return $body;
-    }
-
-    /**
-     * Alias of buildTransactionBody().
-     *
-     * @return array
-     */
-    public function toArray(): array
-    {
-        return $this->buildTransactionBody();
     }
 
     /**
@@ -222,98 +204,7 @@ class FawaterakPayment extends BaseController
             'expiration_time' => is_array($paymentData) ? ($paymentData['expirationTime'] ?? null) : null,
             'system_reference' => is_array($paymentData) ? ($paymentData['systemReference'] ?? null) : null,
             'iso_qr' => is_array($paymentData) ? ($paymentData['isoQr'] ?? null) : null,
-
-            // Backwards compatible aliases. API v3 has a single identifier
-            // (intent_key) where v2 had an invoice id and an invoice key.
-            'invoice_id' => $intentKey,
-            'invoice_key' => $intentKey,
-            'link' => $url,
         ];
     }
 
-    /**
-     * List the payment methods enabled for your account.
-     * GET /api/v3/getTrPaymentmethods
-     *
-     * @param  bool  $fresh  Bypass the local cache.
-     * @return array
-     */
-    public function listPaymentMethods(bool $fresh = false): array
-    {
-        $ttl = (int) config('fawaterak.FAWATERAK_METHODS_CACHE_TTL', 600);
-        $key = 'fawaterak_payment_methods_' . sha1($this->client()->baseUrl());
-
-        if (! $fresh && $ttl > 0) {
-            $cached = Cache::get($key);
-
-            if (is_array($cached)) {
-                return $cached;
-            }
-        }
-
-        try {
-            $response = $this->client()->oauth('get', 'api/v3/getTrPaymentmethods');
-
-            if (! $this->client()->succeeded($response)) {
-                return $this->apiErrorResponse($response, __('fawaterak::messages.PAYMENT_METHODS_FETCH_FAILED'));
-            }
-
-            $result = [
-                'status' => 'success',
-                'data' => $response['body']['data'] ?? [],
-                'vendorSettingsData' => $response['body']['vendorSettingsData'] ?? [],
-            ];
-
-            if ($ttl > 0) {
-                Cache::put($key, $result, $ttl);
-            }
-
-            return $result;
-        } catch (\Exception $e) {
-            return $this->exceptionResponse($e);
-        }
-    }
-
-    /**
-     * Alias of listPaymentMethods().
-     *
-     * @param  bool  $fresh
-     * @return array
-     */
-    public function paymentMethods(bool $fresh = false): array
-    {
-        return $this->listPaymentMethods($fresh);
-    }
-
-    /**
-     * A flat [payment_method_id => localized name] map.
-     *
-     * @param  string|null  $lang  "en" or "ar". Defaults to the app locale.
-     * @return array
-     */
-    public function paymentMethodsList(?string $lang = null): array
-    {
-        $lang = $this->resolveLang($lang);
-        $methods = $this->listPaymentMethods();
-
-        if (($methods['status'] ?? null) !== 'success') {
-            return [];
-        }
-
-        $list = [];
-
-        foreach ($methods['data'] as $method) {
-            $id = $method['payment_method_id'] ?? null;
-
-            if (is_null($id)) {
-                continue;
-            }
-
-            $list[$id] = $lang === 'ar'
-                ? ($method['name_ar'] ?? $method['name_en'] ?? '')
-                : ($method['name_en'] ?? $method['name_ar'] ?? '');
-        }
-
-        return $list;
-    }
 }

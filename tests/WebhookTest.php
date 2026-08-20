@@ -77,7 +77,18 @@ class WebhookTest extends TestCase
         $result = (new FawaterakVerify())->verifyCallback($this->request($this->paidPayload()));
 
         $this->assertTrue($result['success']);
-        $this->assertSame(self::INTENT_KEY, $result['invoice_id']);
+        $this->assertSame(self::INTENT_KEY, $result['transaction_key']);
+    }
+
+    public function test_no_legacy_keys_are_returned()
+    {
+        $this->fakeTransaction();
+
+        $result = (new FawaterakVerify())->verifyPaidCallback($this->request($this->paidPayload()));
+
+        foreach (['invoice_id', 'invoice_key', 'link', 'pay_load'] as $key) {
+            $this->assertArrayNotHasKey($key, $result);
+        }
     }
 
     public function test_a_tampered_hash_fails_leg_one()
@@ -181,7 +192,7 @@ class WebhookTest extends TestCase
         $result = (new FawaterakVerify())->verifyPaidCallback($this->request($payload));
 
         $this->assertTrue($result['success']);
-        $this->assertSame(self::INTENT_KEY, $result['invoice_id']);
+        $this->assertSame(self::INTENT_KEY, $result['transaction_key']);
     }
 
     public function test_an_unrecognised_payload_is_rejected()

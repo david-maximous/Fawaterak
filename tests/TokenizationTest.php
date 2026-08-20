@@ -38,7 +38,7 @@ class TokenizationTest extends TestCase
 
         $this->assertSame('success', $result['status']);
         $this->assertSame('https://staging.fawaterk.com/nbe/storeToken/1994116', $result['redirect_url']);
-        $this->assertSame($result['redirect_url'], $result['redirectUrl']);
+        $this->assertArrayNotHasKey('redirectUrl', $result);
 
         $body = $this->bodyFor('createCardTokenScreen');
 
@@ -118,7 +118,8 @@ class TokenizationTest extends TestCase
             ->payWithToken();
 
         $this->assertSame('https://staging.fawaterk.com/mpgs/abc/auth', $result['redirect_to']);
-        $this->assertSame($result['redirect_to'], $result['link']);
+        $this->assertArrayNotHasKey('redirectTo', $result);
+        $this->assertArrayNotHasKey('link', $result);
 
         $body = $this->bodyFor('createTokenizationPayRequest');
 

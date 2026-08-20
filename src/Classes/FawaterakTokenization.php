@@ -96,7 +96,6 @@ class FawaterakTokenization extends BaseController
             return [
                 'status' => 'success',
                 'redirect_url' => $data['redirectUrl'] ?? null,
-                'redirectUrl' => $data['redirectUrl'] ?? null,
                 'message' => __('fawaterak::messages.TOKEN_CREATED'),
             ];
         });
@@ -119,8 +118,6 @@ class FawaterakTokenization extends BaseController
             return [
                 'status' => 'success',
                 'redirect_to' => $data['redirectTo'] ?? null,
-                'redirectTo' => $data['redirectTo'] ?? null,
-                'link' => $data['redirectTo'] ?? null,
             ];
         }, __('fawaterak::messages.TOKEN_PAYMENT_FAILED'));
     }

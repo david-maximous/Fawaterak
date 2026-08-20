@@ -2,13 +2,14 @@
 
 namespace DavidMaximous\Fawaterak\Classes;
 
+use DavidMaximous\Fawaterak\Traits\FetchesPaymentMethods;
 use DavidMaximous\Fawaterak\Traits\HandlesFawaterakResponses;
 use DavidMaximous\Fawaterak\Traits\SetRequiredFields;
 use DavidMaximous\Fawaterak\Traits\SetVariables;
 
 class BaseController
 {
-    use SetVariables, SetRequiredFields, HandlesFawaterakResponses;
+    use SetVariables, SetRequiredFields, HandlesFawaterakResponses, FetchesPaymentMethods;
 
     /**
      * Shared HTTP client.

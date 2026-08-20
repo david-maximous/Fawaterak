@@ -60,16 +60,18 @@ class TransactionDataTest extends TestCase
         );
     }
 
-    public function test_it_keeps_the_one_dot_x_keys()
+    public function test_it_returns_payload_once_and_no_legacy_keys()
     {
         $this->fakeApi('*/api/v3/getTransactionData', Http::response(self::transactionPayload()));
 
         $result = (new FawaterakVerify())->getTransactionData('550e8400-e29b-41d4-a716-446655440000');
 
-        $this->assertSame($result['intent_key'], $result['invoice_id']);
-        $this->assertSame($result['intent_key'], $result['invoice_key']);
         $this->assertSame(['order_id' => 'ORD-1001'], $result['payload']);
         $this->assertIsArray($result['process_data']);
+
+        foreach (['invoice_id', 'invoice_key', 'pay_load'] as $key) {
+            $this->assertArrayNotHasKey($key, $result);
+        }
     }
 
     public function test_an_unpaid_transaction_is_still_a_successful_read()
@@ -171,6 +173,37 @@ class TransactionDataTest extends TestCase
 
         // One token call plus a single methods call.
         Http::assertSentCount(2);
+    }
+
+    public function test_match_payment_method_resolves_from_the_live_list()
+    {
+        $this->fakeApi('*/api/v3/getTrPaymentmethods', Http::response([
+            'status' => 'success',
+            'data' => [
+                ['payment_method_id' => 4, 'name_en' => 'Meeza', 'name_ar' => 'ميزا'],
+                ['payment_method_id' => 37, 'name_en' => 'valU', 'name_ar' => 'فاليو'],
+            ],
+        ]));
+
+        $verify = new FawaterakVerify();
+
+        $this->assertSame('Meeza', $verify->matchPaymentMethod(4));
+        $this->assertSame('valU', $verify->matchPaymentMethod('37'));
+        $this->assertSame('ميزا', $verify->matchPaymentMethod(4, 'ar'));
+    }
+
+    public function test_match_payment_method_falls_back_without_credentials()
+    {
+        config()->set('fawaterak.FAWATERAK_CLIENT_ID', null);
+        config()->set('fawaterak.FAWATERAK_CLIENT_SECRET', null);
+
+        $verify = new FawaterakVerify();
+
+        // Must never throw, even though the lookup cannot authenticate.
+        $this->assertSame('Visa-Mastercard', $verify->matchPaymentMethod(2));
+        $this->assertSame('Fawry', $verify->matchPaymentMethod(3));
+        $this->assertSame('Meeza', $verify->matchPaymentMethod(4));
+        $this->assertSame('N/A', $verify->matchPaymentMethod(999));
     }
 
     public function test_the_readme_named_argument_call_works()

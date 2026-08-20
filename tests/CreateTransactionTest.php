@@ -36,7 +36,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $response = $this->payment()->createTransaction();
+        $response = $this->payment()->pay();
 
         $this->assertSame('success', $response['status']);
         $this->assertSame('550e8400-e29b-41d4-a716-446655440000', $response['intent_key']);
@@ -45,18 +45,18 @@ class CreateTransactionTest extends TestCase
         $this->assertNull($response['payment_data']);
     }
 
-    public function test_it_returns_the_legacy_one_dot_x_aliases()
+    public function test_no_legacy_keys_are_returned()
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $response = $this->payment()->createTransaction();
+        $response = $this->payment()->pay();
 
-        $this->assertSame($response['intent_key'], $response['invoice_id']);
-        $this->assertSame($response['intent_key'], $response['invoice_key']);
-        $this->assertSame($response['url'], $response['link']);
+        foreach (['invoice_id', 'invoice_key', 'link', 'pay_load'] as $key) {
+            $this->assertArrayNotHasKey($key, $response);
+        }
     }
 
-    public function test_the_one_dot_x_pay_signature_still_works()
+    public function test_the_positional_pay_signature_works()
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
@@ -66,7 +66,7 @@ class CreateTransactionTest extends TestCase
         );
 
         $this->assertSame('success', $response['status']);
-        $this->assertNotEmpty($response['link']);
+        $this->assertNotEmpty($response['url']);
 
         $body = $this->bodyFor('createTransaction');
 
@@ -79,7 +79,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->setPayload(['order_id' => 'ORD-1001'])->createTransaction();
+        $this->payment()->setPayload(['order_id' => 'ORD-1001'])->pay();
 
         $body = $this->bodyFor('createTransaction');
 
@@ -91,7 +91,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->setQuantity(3)->setItemName('Ticket')->createTransaction();
+        $this->payment()->setQuantity(3)->setItemName('Ticket')->pay();
 
         $body = $this->bodyFor('createTransaction');
 
@@ -111,7 +111,7 @@ class CreateTransactionTest extends TestCase
         $this->payment()
             ->addCartItem('Book', 50, 2)
             ->addCartItem('Pen', 10, 1)
-            ->createTransaction();
+            ->pay();
 
         $body = $this->bodyFor('createTransaction');
 
@@ -123,7 +123,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->createTransaction();
+        $this->payment()->pay();
 
         $body = $this->bodyFor('createTransaction');
 
@@ -148,7 +148,7 @@ class CreateTransactionTest extends TestCase
             ->setAuthAndCapture(1)
             ->setMobileWalletNumber('01000000000')
             ->setDueDate('2026-06-06 12:00:00')
-            ->createTransaction();
+            ->pay();
 
         $body = $this->bodyFor('createTransaction');
 
@@ -167,7 +167,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->createTransaction();
+        $this->payment()->pay();
 
         $urls = $this->bodyFor('createTransaction')['redirectionUrls'];
 
@@ -186,7 +186,7 @@ class CreateTransactionTest extends TestCase
             ->setSuccessUrl('https://shop.test/thanks')
             ->setBackUrl('https://shop.test/cart')
             ->setWebhookUrl('https://shop.test/webhooks/fawaterak_json')
-            ->createTransaction();
+            ->pay();
 
         $urls = $this->bodyFor('createTransaction')['redirectionUrls'];
 
@@ -199,7 +199,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->setSuccessUrl('payment-redirect')->createTransaction();
+        $this->payment()->setSuccessUrl('payment-redirect')->pay();
 
         $urls = $this->bodyFor('createTransaction')['redirectionUrls'];
 
@@ -218,10 +218,9 @@ class CreateTransactionTest extends TestCase
             ],
         ]));
 
-        $response = $this->payment()->setMethod('card')->createTransaction();
+        $response = $this->payment()->setMethod('card')->pay();
 
         $this->assertSame('https://staging.fawaterk.com/link/I0PAH', $response['url']);
-        $this->assertSame('https://staging.fawaterk.com/link/I0PAH', $response['link']);
         $this->assertSame(2, $this->bodyFor('createTransaction')['payment_method_id']);
     }
 
@@ -241,7 +240,7 @@ class CreateTransactionTest extends TestCase
             ],
         ]));
 
-        $response = $this->payment()->setMethod('fawry')->createTransaction();
+        $response = $this->payment()->setMethod('fawry')->pay();
 
         $this->assertSame('981335305', $response['reference_number']);
         $this->assertSame('2021-07-06 15:53:41', $response['expire_date']);
@@ -263,7 +262,7 @@ class CreateTransactionTest extends TestCase
             ],
         ]));
 
-        $response = $this->payment()->setMethod('mwallet')->createTransaction();
+        $response = $this->payment()->setMethod('mwallet')->pay();
 
         $this->assertSame('4266311', $response['system_reference']);
         $this->assertSame('00020101021226330016A0000007321000010109610055979', $response['iso_qr']);
@@ -273,7 +272,7 @@ class CreateTransactionTest extends TestCase
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->setPaymentMethodId(37)->createTransaction();
+        $this->payment()->setPaymentMethodId(37)->pay();
 
         $this->assertSame(37, $this->bodyFor('createTransaction')['payment_method_id']);
     }
@@ -289,14 +288,14 @@ class CreateTransactionTest extends TestCase
     {
         $this->expectException(MissingPaymentInfoException::class);
 
-        (new FawaterakPayment())->setAmount(100)->createTransaction();
+        (new FawaterakPayment())->setAmount(100)->pay();
     }
 
     public function test_save_customer_requires_a_customer_unique_id()
     {
         $this->expectException(MissingPaymentInfoException::class);
 
-        $this->payment()->setSaveCustomer(true)->createTransaction();
+        $this->payment()->setSaveCustomer(true)->pay();
     }
 
     public function test_a_validation_error_is_surfaced()
@@ -306,7 +305,7 @@ class CreateTransactionTest extends TestCase
             'message' => ['cartTotal' => ['The cart total field is required.']],
         ], 422));
 
-        $response = $this->payment()->createTransaction();
+        $response = $this->payment()->pay();
 
         $this->assertSame('error', $response['status']);
         $this->assertSame(422, $response['http_status']);
@@ -331,16 +330,38 @@ class CreateTransactionTest extends TestCase
                 ]),
         ]);
 
-        $response = $this->payment()->createTransaction();
+        $response = $this->payment()->pay();
 
         $this->assertSame('retried-key', $response['intent_key']);
+    }
+
+    public function test_debug_returns_the_body_that_will_be_sent()
+    {
+        $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
+
+        $payment = $this->payment()->setMethod('fawry')->setPayload(['order_id' => 7]);
+
+        $preview = $payment->debug();
+
+        $payment->pay();
+
+        $this->assertSame($preview, $this->bodyFor('createTransaction'));
+    }
+
+    public function test_debug_sends_nothing_on_its_own()
+    {
+        Http::fake();
+
+        $this->payment()->debug();
+
+        Http::assertNothingSent();
     }
 
     public function test_the_bearer_token_is_attached()
     {
         $this->fakeApi('*/api/v3/createTransaction', $this->hostedCheckoutResponse());
 
-        $this->payment()->createTransaction();
+        $this->payment()->pay();
 
         Http::assertSent(function ($request) {
             return str_contains($request->url(), 'createTransaction')
