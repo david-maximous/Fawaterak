@@ -1,29 +1,47 @@
 {
     "name": "david-maximous/fawaterak",
-    "version": "1.0.6",
+    "version": "2.0.0",
     "license": "MIT",
-    "description": "Laravel Payment helper for Fawaterak",
+    "description": "Laravel Payment helper for Fawaterak (API v3): transactions, payment methods, tokenization, recurring, refunds and webhooks",
     "keywords": [
         "online payments",
         "fawaterak",
+        "laravel",
         "card",
         "fawry",
         "aman",
         "basata",
         "masary",
+        "meeza",
         "mobile wallet",
-        "apple pay"
+        "apple pay",
+        "tokenization",
+        "recurring",
+        "refund"
     ],
     "autoload": {
         "psr-4": {
             "DavidMaximous\\Fawaterak\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "DavidMaximous\\Fawaterak\\Tests\\": "tests/"
+        }
+    },
     "require": {
-        "php": ">=7.0",
-        "laravel/framework": ">=6.0",
+        "php": "^8.0",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/http": "^9.0|^10.0|^11.0|^12.0",
         "ext-json": "*",
         "ext-curl": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5|^10.5|^11.0",
+        "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0"
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
     },
     "authors": [
         {
@@ -31,6 +49,11 @@
             "email": "info@davidmaximous.me"
         }
     ],
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "extra": {
         "laravel": {
             "providers": [
