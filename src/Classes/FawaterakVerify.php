@@ -582,11 +582,11 @@ class FawaterakVerify extends BaseController
     protected function staticPaymentMethodName($method)
     {
         return match ((string) $method) {
-            '9' => 'Visa-Mastercard',
-            '3' => 'Fawry',
-            '4' => 'Mobile Wallet',
-            '12' => 'Aman',
-            '4' => 'Basata',
+            '9' => 'card',
+            '3' => 'fawry',
+            '4' => 'mwallet',
+            '12' => 'aman',
+            '4' => 'basata',
             default => 'N/A',
         };
     }
